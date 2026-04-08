@@ -1,0 +1,33 @@
+# Бинарники
+/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+ 
+# Артефакты тестирования
+*.test
+*.out
+coverage.html
+coverage.txt
+*.prof
+ 
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+ 
+# OS
+.DS_Store
+Thumbs.db
+ 
+# Секреты
+.env
+.env.local
+*.env
+ 
+# Логи и временные файлы
+*.log
+tmp/
+temp/
