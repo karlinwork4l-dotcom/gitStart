@@ -1,49 +1,50 @@
 package main
 
 import (
-	"context"
-	"log"
+	"encoding/json"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
+
+	"modernc.org/libc/uuid"
 )
 
 func main() {
-	// создаём сервер
-	srv := &http.Server{
-		Addr: ":8080",
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(2 * time.Second) // имитация работы
-			w.Write([]byte("Hello"))
-		}),
-	}
+	http.HandleFunc("/links", linksHandler)
+	http.HandleFunc("/links/", linksHandler)
 
-	// канал для сигналов ОС
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	http.ListenAndServe(":8080", nil)
+}
 
-	// запускаем сервер в горутине
-	go func() {
-		log.Println("Server started on :8080")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
+func linksHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var input Link
+
+		err := json.NewDecoder(r.Body).Decode(&input)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
-	}()
 
-	// ждём сигнал
-	<-stop
-	log.Println("Shutting down server...")
+		newLink := Link{
+			ID:          uuid.New().String(),
+			URL:         input.URL,
+			Title:       input.Title,
+			Description: input.Description,
+			CreatedAt:   time.Now(),
+		}
 
-	// создаём контекст с таймаутом
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+		links = append(links, newLink)
 
-	// graceful shutdown
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		w.Header().Set("Context-Type", "application/json")
+		json.NewEncoder(w).Encode(newLink)
+
+	case http.MethodGet:
+		w.Header().Set("Context-Type", "application/json")
+		json.NewEncoder(w).Encode(links)
+
+	default:
+		http.Error(w, "method not allowed", http.StatusBadRequest)
 	}
 
-	log.Println("Server exited properly")
 }
